@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_colors.dart';
@@ -11,6 +12,7 @@ import '../models/team.dart';
 import '../widgets/board_widget.dart';
 import '../widgets/timer_widget.dart';
 import '../widgets/gradient_button.dart';
+import '../widgets/dice_3d.dart';
 
 class BoardGameScreen extends StatefulWidget {
   const BoardGameScreen({super.key});
@@ -38,7 +40,11 @@ class _BoardGameScreenState extends State<BoardGameScreen>
   BoardCategory _animatingCategory = BoardCategory.pessoa;
   Timer? _cycleTimer;
 
-  // Animation controllers for dice
+  // GlobalKeys para controlar os dados 3D externamente
+  final _numDiceKey = GlobalKey<Dice3DState>();
+  final _catDiceKey = GlobalKey<CategoryDice3DState>();
+
+  // Legacy controllers
   late final AnimationController _rollController;
   late final AnimationController _bounceController;
   late final Animation<double> _rotationAnim;
@@ -87,44 +93,32 @@ class _BoardGameScreenState extends State<BoardGameScreen>
     BoardCategory.mix: 'M',
   };
 
+  late AnimationController _shakeController;
+
   @override
   void initState() {
     super.initState();
 
     _rollController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 1000),
     );
-    _rotationAnim = Tween<double>(begin: 0, end: 4 * pi).animate(
+    _rotationAnim = Tween<double>(begin: 0, end: 1.0).animate(
       CurvedAnimation(parent: _rollController, curve: Curves.easeOutCubic),
     );
 
     _bounceController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 500),
     );
-    _bounceAnim = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween(begin: 1.0, end: 1.18)
-            .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 30,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: 1.18, end: 0.92)
-            .chain(CurveTween(curve: Curves.easeInOut)),
-        weight: 25,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: 0.92, end: 1.05)
-            .chain(CurveTween(curve: Curves.easeInOut)),
-        weight: 25,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: 1.05, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeIn)),
-        weight: 20,
-      ),
-    ]).animate(_bounceController);
+    _bounceAnim = Tween<double>(begin: 0, end: 1.0).animate(
+      CurvedAnimation(parent: _bounceController, curve: Curves.easeOut),
+    );
+
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
   }
 
   @override
@@ -132,84 +126,34 @@ class _BoardGameScreenState extends State<BoardGameScreen>
     _cycleTimer?.cancel();
     _rollController.dispose();
     _bounceController.dispose();
+    _shakeController.dispose();
     super.dispose();
   }
 
-  /// Roll both dice simultaneously with animation.
-  Future<void> _rollBothDice(GameProvider gp) async {
-    if (_diceRolled || _isRollingAnimation) return;
-
-    // Generate final results
-    final numericResult = _random.nextInt(6) + 1;
-    final categories = BoardCategory.values;
-    final categoryResult = categories[_random.nextInt(categories.length)];
-
-    setState(() {
-      _isRollingAnimation = true;
-      _numericResult = null;
-      _categoryResult = null;
-    });
-
-    // Start rotation animation
-    _rollController.forward(from: 0);
-
-    // Cycle through random values every 60ms
-    _cycleTimer = Timer.periodic(const Duration(milliseconds: 60), (_) {
-      if (!mounted) return;
-      setState(() {
-        _animatingNumeric = _random.nextInt(6) + 1;
-        _animatingCategory = categories[_random.nextInt(categories.length)];
-      });
-    });
-
-    // Wait for cycling phase
-    await Future.delayed(const Duration(milliseconds: 800));
-    _cycleTimer?.cancel();
-
-    if (!mounted) return;
-
-    // Set final values
-    setState(() {
-      _animatingNumeric = numericResult;
-      _animatingCategory = categoryResult;
-      _numericResult = numericResult;
-      _categoryResult = categoryResult;
-    });
-
-    // Bounce / land effect
-    await _bounceController.forward(from: 0);
-
-    if (!mounted) return;
-
-    setState(() {
-      _isRollingAnimation = false;
-      _diceRolled = true;
-      _isTransitioning = true;
-    });
-
-    // Show transition with results for 1.5s, then proceed
-    await Future.delayed(const Duration(milliseconds: 1500));
-
-    if (!mounted) return;
-
-    gp.rollBothDice(categoryResult, numericResult);
-
-    // Check if the space is "escolhe categoria" - need player to pick
-    final space = gp.gameState?.currentBoardSpace;
-    if (space?.type == SpaceType.escolheCategoria) {
-      setState(() {
-        _isTransitioning = false;
-        _waitingForCategoryChoice = true;
-      });
-    } else {
-      setState(() {
-        _isTransitioning = false;
-        _showWordCard = true;
-        _wordRevealed = false; // mostrar botão "Revelar Palavra" primeiro
-      });
-      // NÃO inicia timer aqui - espera o jogador revelar a palavra
-    }
+  /// Rolar ambos os dados via botão ou shake
+  void _triggerBothDice() {
+    if (_diceRolled) return;
+    _numDiceKey.currentState?.rollExternally();
+    _catDiceKey.currentState?.rollExternally();
   }
+
+  /// Chamado quando UM dos dados 3D para. Quando AMBOS pararem, segue o jogo.
+  void _checkBothDiceSettled(GameProvider gp) {
+    if (_categoryResult == null || _numericResult == null) return;
+    setState(() { _diceRolled = true; _isTransitioning = true; });
+
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (!mounted) return;
+      gp.rollBothDice(_categoryResult!, _numericResult!);
+      final space = gp.gameState?.currentBoardSpace;
+      if (space?.type == SpaceType.escolheCategoria) {
+        setState(() { _isTransitioning = false; _waitingForCategoryChoice = true; });
+      } else {
+        setState(() { _isTransitioning = false; _showWordCard = true; _wordRevealed = false; _wordVisible = false; });
+      }
+    });
+  }
+
 
   void _handleCategoryChoice(GameProvider gp, BoardCategory category) {
     gp.chooseCategory(category);
@@ -466,32 +410,33 @@ class _BoardGameScreenState extends State<BoardGameScreen>
 
                 const SizedBox(height: 20),
 
-                // Both dice side by side
-                AnimatedBuilder(
-                  animation: Listenable.merge([_rotationAnim, _bounceAnim]),
-                  builder: (_, child) {
-                    return Transform(
-                      alignment: Alignment.center,
-                      transform: Matrix4.identity()
-                        ..setEntry(3, 2, 0.002)
-                        ..rotateX(_isRollingAnimation ? _rotationAnim.value : 0)
-                        // ignore: deprecated_member_use
-                        ..scale(_bounceAnim.value),
-                      child: child,
-                    );
-                  },
-                  child: GestureDetector(
-                    onTap: () => _rollBothDice(gp),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Category die
-                        _CategoryDieFace(letter: catLetter, color: catColor, size: 80),
-                        const SizedBox(width: 16),
-                        // Numeric die
-                        _NumericDieFace(value: _animatingNumeric, size: 80),
-                      ],
-                    ),
+                // 3D Dice - toque em qualquer um para rolar ambos
+                GestureDetector(
+                  onTap: _triggerBothDice,
+                  onLongPress: _triggerBothDice, // shake alternative
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CategoryDice3DWidget(
+                        key: _catDiceKey,
+                        size: 75,
+                        enabled: !_diceRolled,
+                        onRoll: (cat) {
+                          setState(() { _categoryResult = cat; _animatingCategory = cat; });
+                          _checkBothDiceSettled(gp);
+                        },
+                      ),
+                      const SizedBox(width: 12),
+                      Dice3DWidget(
+                        key: _numDiceKey,
+                        size: 75,
+                        enabled: !_diceRolled,
+                        onRoll: (val) {
+                          setState(() { _numericResult = val; _animatingNumeric = val; });
+                          _checkBothDiceSettled(gp);
+                        },
+                      ),
+                    ],
                   ),
                 ),
 
@@ -521,25 +466,14 @@ class _BoardGameScreenState extends State<BoardGameScreen>
                   ),
                 ],
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
 
-                // Roll button
-                if (!_isRollingAnimation && !_diceRolled)
+                // Botão "Rolar Dados" (alternativa ao toque nos dados)
+                if (!_diceRolled)
                   GradientButton(
                     text: 'Rolar Dados!',
                     icon: Icons.casino_rounded,
-                    onPressed: () => _rollBothDice(gp),
-                  ),
-
-                if (_isRollingAnimation)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      'Rolando...',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.outline,
-                      ),
-                    ),
+                    onPressed: _triggerBothDice,
                   ),
               ],
             ),
