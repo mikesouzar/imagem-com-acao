@@ -1,6 +1,6 @@
-# imagem_com_acao
+# Imagem com Ação
 
-A new Flutter project.
+Jogo mobile multiplayer de mímica e desenho, desenvolvido em Flutter.
 
 ## Getting Started
 
