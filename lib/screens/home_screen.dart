@@ -26,7 +26,6 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         elevation: 0,
-        leading: null,
         automaticallyImplyLeading: false,
         title: Text(
           'Imagem & Ação',
@@ -37,6 +36,23 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         centerTitle: true,
+        leading: GestureDetector(
+          onTap: () => _showProfileBottomSheet(context),
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: CircleAvatar(
+              backgroundColor: AppColors.primaryContainer.withValues(alpha: 0.3),
+              child: Text(
+                (player?.name.isNotEmpty == true ? player!.name[0].toUpperCase() : '?'),
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined, color: AppColors.onSurface),
@@ -304,6 +320,116 @@ class _HomeScreenState extends State<HomeScreen> {
               label: 'REGRAS',
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showProfileBottomSheet(BuildContext context) {
+    final auth = context.read<AuthProvider>();
+    final player = auth.currentPlayer;
+    final nameController = TextEditingController(text: player?.name ?? '');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom,
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                CircleAvatar(
+                  radius: 36,
+                  backgroundColor: AppColors.primaryContainer.withValues(alpha: 0.3),
+                  child: Text(
+                    player?.name.isNotEmpty == true ? player!.name[0].toUpperCase() : '?',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  player?.name ?? '',
+                  style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  auth.isEmailVerified ? 'E-mail verificado ✓' : 'E-mail não verificado',
+                  style: GoogleFonts.beVietnamPro(
+                    fontSize: 13,
+                    color: auth.isEmailVerified ? Colors.green : AppColors.tertiary,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Editar nome',
+                    prefixIcon: const Icon(Icons.person_outline_rounded),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                    filled: true,
+                    fillColor: AppColors.surfaceContainerLow,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    onPressed: () async {
+                      final newName = nameController.text.trim();
+                      if (newName.isNotEmpty) {
+                        await auth.updateDisplayName(newName);
+                      }
+                      if (ctx.mounted) Navigator.pop(ctx);
+                    },
+                    child: Text('Salvar', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.secondary,
+                      side: const BorderSide(color: AppColors.secondary),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    icon: const Icon(Icons.logout_rounded),
+                    label: Text('Sair', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      await auth.logout();
+                      if (context.mounted) Navigator.pushReplacementNamed(context, '/login');
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

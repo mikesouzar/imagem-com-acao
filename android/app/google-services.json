@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "499330152750",
+    "project_id": "imagem-e-acao",
+    "storage_bucket": "imagem-e-acao.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:499330152750:android:0f7fd414633cda45ec22bf",
+        "android_client_info": {
+          "package_name": "com.playpulse.imagem_com_acao"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC91hA_27arSFnX_0mGKjiakXzZ9DMRCso"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

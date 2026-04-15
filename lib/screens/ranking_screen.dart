@@ -326,14 +326,13 @@ class _RankingScreenState extends State<RankingScreen>
           const SizedBox(height: 8),
 
           // Podium base
-          Container(
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            child: Container(
             width: double.infinity,
             height: rank == 1 ? 44 : (rank == 2 ? 32 : 24),
             decoration: BoxDecoration(
               color: podiumColor.withValues(alpha: 0.2),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(12),
-              ),
               border: Border(
                 top: BorderSide(color: podiumColor, width: 3),
                 left: BorderSide(color: podiumColor.withValues(alpha: 0.3), width: 1),
@@ -350,7 +349,7 @@ class _RankingScreenState extends State<RankingScreen>
                 ),
               ),
             ),
-          ),
+          )),
         ],
       ),
     );

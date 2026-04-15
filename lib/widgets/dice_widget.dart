@@ -219,13 +219,14 @@ class _DiceCube extends StatelessWidget {
     final pipSize = size * 0.16;
     final radius = size * 0.15;
 
-    return Container(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
+      decoration: const BoxDecoration(
         // Face principal com gradiente 3D
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment(-1, -1),
           end: Alignment(1, 1),
           colors: [
@@ -237,12 +238,12 @@ class _DiceCube extends StatelessWidget {
         ),
         // Borda simulando aresta do cubo
         border: Border(
-          top: BorderSide(color: const Color(0xFFE0DCE8), width: 2.5),
-          left: BorderSide(color: const Color(0xFFE0DCE8), width: 2.5),
-          right: BorderSide(color: const Color(0xFFC8C4D0), width: 3),
-          bottom: BorderSide(color: const Color(0xFFB8B4C0), width: 4),
+          top: BorderSide(color: Color(0xFFE0DCE8), width: 2.5),
+          left: BorderSide(color: Color(0xFFE0DCE8), width: 2.5),
+          right: BorderSide(color: Color(0xFFC8C4D0), width: 3),
+          bottom: BorderSide(color: Color(0xFFB8B4C0), width: 4),
         ),
-        boxShadow: const [
+        boxShadow: [
           // Sombra inferior grossa (profundidade do cubo)
           BoxShadow(color: Color(0xFF9E9AAA), offset: Offset(2, 4), blurRadius: 0),
           BoxShadow(color: Color(0xFFB0ACBA), offset: Offset(1, 3), blurRadius: 0),
@@ -277,7 +278,7 @@ class _DiceCube extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildPips(double pipSize) {

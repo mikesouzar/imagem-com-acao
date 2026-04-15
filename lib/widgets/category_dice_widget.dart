@@ -216,11 +216,12 @@ class _CategoryCube extends StatelessWidget {
     final light = Color.lerp(color, Colors.white, 0.3)!;
     final radius = size * 0.15;
 
-    return Container(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
         gradient: LinearGradient(
           begin: const Alignment(-1, -1),
           end: const Alignment(1, 1),
@@ -273,6 +274,6 @@ class _CategoryCube extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ));
   }
 }

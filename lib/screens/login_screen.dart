@@ -327,19 +327,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: _SocialButton(
                         label: 'Google',
                         icon: Icons.g_mobiledata_rounded,
-                        onTap: () {
-                          context.read<AuthProvider>().loginAsGuestWithName('Usuário Google');
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Login com Google em breve! Entrando como convidado.',
-                                style: GoogleFonts.beVietnamPro(),
-                              ),
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            ),
-                          );
-                          Navigator.pushReplacementNamed(context, '/home');
+                        onTap: () async {
+                          final auth = context.read<AuthProvider>();
+                          final nav = Navigator.of(context);
+                          final success = await auth.loginWithGoogle();
+                          if (success && mounted) {
+                            nav.pushReplacementNamed('/home');
+                          }
                         },
                       ),
                     ),
@@ -349,18 +343,16 @@ class _LoginScreenState extends State<LoginScreen> {
                         label: 'Facebook',
                         icon: Icons.facebook_rounded,
                         onTap: () {
-                          context.read<AuthProvider>().loginAsGuestWithName('Usuário Facebook');
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                'Login com Facebook em breve! Entrando como convidado.',
+                                'Login com Facebook em breve!',
                                 style: GoogleFonts.beVietnamPro(),
                               ),
                               behavior: SnackBarBehavior.floating,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             ),
                           );
-                          Navigator.pushReplacementNamed(context, '/home');
                         },
                       ),
                     ),
